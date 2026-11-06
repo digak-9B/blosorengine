@@ -1,6 +1,7 @@
-// --- MODULAR DATASTORE & STUDIO MAP STORAGE ---
+// --- MODULAR DATASTORE & STUDIO MAP STORAGE DENGAN LOCALSTORAGE ---
 const BlosorDataStore = {
-    maps: {
+    // Default data awal jika belum ada data tersimpan di HP
+    defaultMaps: {
         "map_1": {
             title: "My First Map",
             maxPlayers: 10,
@@ -21,12 +22,40 @@ const BlosorDataStore = {
             ]
         }
     },
+    
+    maps: {},
     publishedMaps: [],
+
+    // 1. Load data dari LocalStorage HP agar tidak hilang saat di-refresh
+    initStorage: function() {
+        const savedMaps = localStorage.getItem("blosor_saved_maps");
+        const savedPublished = localStorage.getItem("blosor_published_maps");
+
+        if (savedMaps) {
+            this.maps = JSON.parse(savedMaps);
+        } else {
+            this.maps = JSON.parse(JSON.stringify(this.defaultMaps));
+            this.saveToStorage();
+        }
+
+        if (savedPublished) {
+            this.publishedMaps = JSON.parse(savedPublished);
+        }
+    },
+
+    // 2. Simpan data otomatis ke memori HP
+    saveToStorage: function() {
+        localStorage.setItem("blosor_saved_maps", JSON.stringify(this.maps));
+        localStorage.setItem("blosor_published_maps", JSON.stringify(this.publishedMaps));
+    },
 
     getMapBlocks: function(mapId) {
         return this.maps[mapId] ? this.maps[mapId].blocks : [];
     }
 };
+
+// Inisialisasi penyimpanan saat file dimuat
+BlosorDataStore.initStorage();
 
 function getCurrentSelectedMapId() {
     return document.getElementById("map-selector").value;
@@ -35,8 +64,10 @@ function getCurrentSelectedMapId() {
 function updateStudioInfo() {
     const mapId = getCurrentSelectedMapId();
     const mapData = BlosorDataStore.maps[mapId];
-    document.getElementById("active-map-info").textContent = `Active Blocks: ${mapData.blocks.length} items loaded in "${mapData.title}"`;
-    document.getElementById("input-map-title").value = mapData.title;
+    if(mapData) {
+        document.getElementById("active-map-info").textContent = `Active Blocks: ${mapData.blocks.length} items loaded in "${mapData.title}"`;
+        document.getElementById("input-map-title").value = mapData.title;
+    }
 }
 
 function onSelectMapToEdit() {
@@ -62,8 +93,10 @@ function submitPublishMap() {
     const customTitle = document.getElementById("input-map-title").value.trim() || "Untitled Map";
     const maxPlayers = parseInt(document.getElementById("input-max-players").value);
 
+    // Update data map dan simpan permanen ke HP
     BlosorDataStore.maps[mapId].title = customTitle;
     BlosorDataStore.maps[mapId].maxPlayers = maxPlayers;
+    BlosorDataStore.saveToStorage();
 
     const selectElem = document.getElementById("map-selector");
     for (let opt of selectElem.options) {
@@ -88,7 +121,10 @@ function submitPublishMap() {
         BlosorDataStore.publishedMaps.push(mapPayload);
     }
 
-    alert(`Berhasil mem-publish "${customTitle}"!\nMap sekarang sudah muncul di menu Discover.`);
+    // Simpan daftar published ke storage juga
+    BlosorDataStore.saveToStorage();
+
+    alert(`Berhasil mem-publish "${customTitle}"!\nData map tersimpan aman di perangkatmu dan muncul di Discover.`);
     closePublishModal();
     updateStudioInfo();
 }
@@ -124,6 +160,7 @@ async function fetchCommunityGamesFromCloud() {
 
 window.addEventListener('DOMContentLoaded', () => {
     fetchCommunityGamesFromCloud();
+    updateStudioInfo();
 });
 
 function switchTab(tabName, el) {
@@ -138,5 +175,4 @@ function switchTab(tabName, el) {
         updateStudioInfo();
     }
     el.classList.add('active');
-      }
-  
+}
