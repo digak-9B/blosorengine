@@ -414,4 +414,42 @@ function initBlosorEngine(mapId) {
                 const playerHeadPos = new THREE.Vector3(player.pos.x, player.pos.y + 1.2, player.pos.z);
                 const idealCamX = player.pos.x + Math.sin(yaw) * Math.cos(pitch) * camDist;
                 const idealCamY = player.pos.y + 1.2 + Math.sin(pitch) * camDist;
-                co
+                const idealCamZ = player.pos.z + Math.cos(yaw) * Math.cos(pitch) * camDist;
+                const idealCamPos = new THREE.Vector3(idealCamX, idealCamY, idealCamZ);
+
+                let finalCamDist = camDist;
+                for (const b of colliders) {
+                    if (
+                        idealCamPos.x >= b.minX && idealCamPos.x <= b.maxX &&
+                        idealCamPos.y >= b.minY && idealCamPos.y <= b.maxY &&
+                        idealCamPos.z >= b.minZ && idealCamPos.z <= b.maxZ
+                    ) {
+                        finalCamDist = Math.max(1.5, playerHeadPos.distanceTo(new THREE.Vector3(b.minX, b.maxY, b.minZ)) - 0.5);
+                    }
+                }
+
+                camera.position.set(
+                    player.pos.x + Math.sin(yaw) * Math.cos(pitch) * finalCamDist,
+                    player.pos.y + 1.2 + Math.sin(pitch) * finalCamDist,
+                    player.pos.z + Math.cos(yaw) * Math.cos(pitch) * finalCamDist
+                );
+                camera.lookAt(playerHeadPos);
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        return {
+            destroy: function() {
+                cancelAnimationFrame(animationFrameId);
+                renderer.dispose();
+                scene.clear();
+            }
+        };
+
+    } catch (err) {
+        console.error("Blosor Engine Error Detected:", err);
+        alert("System error encountered on Blosor Platform: " + err.message);
+    }
+}
