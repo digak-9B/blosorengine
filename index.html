@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Blosor Engine - Standalone Platform</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00ff88">
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background-color: #111216; color: #ffffff; display: flex; height: 100vh; overflow: hidden; user-select: none; }
+
+#sidebar { width: 240px; background-color: #191b21; border-right: 1px solid #292d37; display: flex; flex-direction: column; justify-content: space-between; padding: 20px 10px; z-index: 101; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 10px; font-size: 18px; font-weight: bold; color: #00ff88; }
+.nav-list { list-style: none; margin-top: 20px; }
+.nav-item { padding: 12px 15px; margin-bottom: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px; color: #a0a5b5; font-size: 15px; font-weight: 600; transition: 0.2s; }
+.nav-item:hover, .nav-item.active { background-color: #262933; color: #ffffff; }
+.nav-item.active { border-left: 4px solid #00ff88; }
+
+.profile-card { background-color: #20232c; padding: 12px; border-radius: 10px; display: flex; align-items: center; gap: 10px; }
+.avatar-preview-mini { width: 36px; height: 36px; background-color: #f5cd2f; border-radius: 50%; border: 2px solid #00ff88; }
+
+#main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 30px; z-index: 101; }
+.panel-section { display: none; flex-direction: column; height: 100%; }
+.panel-section.active-panel { display: flex; }
+
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.game-card { background-color: #1b1d24; border-radius: 12px; overflow: hidden; border: 1px solid #282c37; transition: 0.2s; }
+.game-card:hover { transform: translateY(-5px); border-color: #00ff88; }
+.game-thumb { width: 100%; height: 120px; background: linear-gradient(45deg, #1f4e9c, #3fa34d); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; text-align: center; padding: 10px; }
+.game-info { padding: 12px; }
+.game-title { font-size: 15px; font-weight: bold; margin-bottom: 4px; }
+.game-author { font-size: 12px; color: #80879a; }
+
+.btn-play { width: 100%; background-color: #00ff88; color: #000; border: none; padding: 10px; font-weight: bold; border-radius: 6px; margin-top: 10px; cursor: pointer; }
+.btn-play:active { transform: scale(0.97); }
+
+.studio-box { background: #1b1d24; border: 1px solid #282c37; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 15px; max-width: 600px; }
+.studio-label { font-size: 14px; font-weight: bold; color: #a0a5b5; margin-bottom: 5px; display: block; }
+.studio-select, .studio-input { width: 100%; background: #20232c; border: 1px solid #3a3f4e; color: white; padding: 12px; border-radius: 8px; font-size: 14px; outline: none; }
+.studio-select:focus, .studio-input:focus { border-color: #00ff88; }
+
+.studio-tools { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.studio-btn { background: #262933; color: white; border: 1px solid #3a3f4e; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; flex: 1; }
+.studio-btn:hover { background: #00ff88; color: #000; border-color: #00ff88; }
+
+#publish-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+.modal-card { background: #191b21; border: 1px solid #292d37; border-radius: 14px; padding: 25px; width: 350px; display: flex; flex-direction: column; gap: 15px; }
+.modal-card h3 { color: #00ff88; font-size: 18px; }
+.modal-card input { background: #20232c; border: 1px solid #3a3f4e; color: white; padding: 10px 12px; border-radius: 8px; font-size: 14px; outline: none; width: 100%; }
+.modal-buttons { display: flex; gap: 10px; margin-top: 5px; }
+
+#canvas-container { position: absolute; inset: 0; width: 100%; height: 100%; display: none; z-index: 1; }
+#ui { position: absolute; top: 15px; left: 160px; color: white; text-shadow: 2px 2px 4px black; pointer-events: none; z-index: 20; display: none; }
+#ui h1 { margin: 0; font-size: 16px; color: #00ff88; }
+#ui p { margin: 2px 0 0; font-size: 11px; color: #ddd; }
+#hp-text { color: #ff3366; font-weight: bold; }
+
+#roblox-topbar { position: absolute; top: 12px; left: 12px; display: flex; align-items: center; gap: 8px; z-index: 50; display: none; pointer-events: auto; }
+.logo-btn { width: 42px; height: 42px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; color: #00ff88; font-weight: bold; font-size: 16px; flex-shrink: 0; }
+.top-pill { background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(5px); border-radius: 22px; padding: 4px 10px; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255, 255, 255, 0.15); height: 42px; }
+.top-icon-btn { background: none; border: none; color: white; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; }
+
+#chat-box-container { position: absolute; bottom: 30px; left: 30px; z-index: 60; display: none; flex-direction: column; gap: 8px; width: 280px; }
+#chat-input { width: 100%; padding: 10px 14px; background: rgba(0, 0, 0, 0.8); border: 2px solid #00ff88; border-radius: 20px; color: white; font-size: 14px; outline: none; backdrop-filter: blur(5px); }
+
+#chat-bubbles-container { position: absolute; inset: 0; pointer-events: none; z-index: 40; display: none; overflow: hidden; }
+.chat-bubble { position: absolute; background: rgba(255, 255, 255, 0.95); color: #000; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transform: translate(-50%, -100%); white-space: nowrap; transition: opacity 0.3s ease; }
+
+#side-btns { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 30; display: none; }
+.mini-btn { width: 45px; height: 45px; border-radius: 50%; border: 2px solid rgba(255,255,255,.6); background: rgba(0,0,0,.4); color: white; font-size: 20px; font-weight: bold; cursor: pointer; }
+
+#joystick-zone { position: absolute; bottom: 30px; left: 30px; width: 130px; height: 130px; background: rgba(255,255,255,.15); border: 2px solid rgba(255,255,255,.3); border-radius: 50%; z-index: 10; touch-action: none; display: none; }
+#joystick-knob { position: absolute; top: 50%; left: 50%; width: 55px; height: 55px; background: rgba(0,255,136,.8); border-radius: 50%; transform: translate(-50%,-50%); pointer-events: none; }
+
+.jump-btn { position: absolute; bottom: 40px; right: 30px; width: 80px; height: 80px; background: rgba(0,150,255,.4); border: 2px solid rgba(100,200,255,.8); color: white; font-size: 15px; font-weight: bold; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 10; touch-action: none; display: none; }
+
+#death-screen { position: absolute; inset: 0; background: rgba(15,0,0,.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; color: white; }
+#death-screen h2 { font-size: 32px; color: #ff3333; }
+#respawn-btn { background: #00ff88; color: #000; border: none; padding: 12px 28px; font-size: 16px; font-weight: bold; border-radius: 10px; cursor: pointer; }
+</style>
+
+<!-- Load Three.js Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div>
+            <div class="brand">🚀 BLOSOR</div>
+            <ul class="nav-list">
+                <li class="nav-item active" onclick="switchTab('discover', this)">🏠 Discover</li>
+                <li class="nav-item" onclick="switchTab('studio', this)">🛠️ Studio</li>
+            </ul>
+        </div>
+        <div class="profile-card">
+            <div class="avatar-preview-mini"></div>
+            <div>
+                <div style="font-size: 13px; font-weight: bold;">Player_01</div>
+                <div style="font-size: 11px; color: #00ff88;">Online</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="panel-discover" class="panel-section active-panel">
+            <div class="header">
+                <h2>Community Discover</h2>
+            </div>
+            <div class="games-grid" id="games-grid-container"></div>
+        </div>
+
+        <div id="panel-studio" class="panel-section">
+            <div class="header">
+                <h2>Blosor Studio</h2>
+            </div>
+            <div class="studio-box">
+                <div>
+                    <label class="studio-label">Select Map to Edit:</label>
+                    <select id="map-selector" class="studio-select" onchange="onSelectMapToEdit()">
+                        <option value="map_1">My First Map (Slot 1)</option>
+                        <option value="map_2">Parkour Challenge (Slot 2)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="studio-label" id="active-map-info">Active Blocks: 2 items loaded</label>
+                </div>
+                <div class="studio-tools">
+                    <button class="studio-btn" onclick="testPlayCurrentStudioMap()">▶ Test Play</button>
+                    <button class="studio-btn" onclick="openPublishModal()" style="background: #00ff88; color: #000;">☁️ Publish Map</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="publish-modal">
+        <div class="modal-card">
+            <h3>Publish Map to Cloud</h3>
+            <div>
+                <label style="font-size: 12px; color: #a0a5b5; display: block; margin-bottom: 4px;">Game / Map Title:</label>
+                <input type="text" id="input-map-title" placeholder="e.g. Awesome Obby">
+            </div>
+            <div>
+                <label style="font-size: 12px; color: #a0a5b5; display: block; margin-bottom: 4px;">Server Capacity (Max Players):</label>
+                <select id="input-max-players" class="studio-input" style="padding: 8px;">
+                    <option value="5">Small Server (5 Players)</option>
+                    <option value="10" selected>Standard Server (10 Players)</option>
+                    <option value="20">Large Server (20 Players)</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="studio-btn" onclick="closePublishModal()" style="background: #2b2f3d;">Cancel</button>
+                <button class="studio-btn" onclick="submitPublishMap()" style="background: #00ff88; color: #000;">Confirm Publish</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+    <div id="chat-bubbles-container"></div>
+
+    <div id="roblox-topbar">
+        <div class="logo-btn" onclick="returnToMenu()" title="Return to Menu">B</div>
+        <div class="top-pill">
+            <button class="top-icon-btn" onclick="alert('Game Main Menu')" title="Menu">☰</button>
+            <button class="top-icon-btn" onclick="toggleChatBox()" title="Chat">💬</button>
+        </div>
+    </div>
+
+    <div id="chat-box-container">
+        <input type="text" id="chat-input" placeholder="Type a message (max 25 words)..." autocomplete="off">
+    </div>
+
+    <div id="ui">
+        <h1>🚀 BLOSOR ENGINE</h1>
+        <p>HP: <span id="hp-text">200</span>/200</p>
+    </div>
+
+    <div id="side-btns">
+        <button class="mini-btn" id="btn-zin">+</button>
+        <button class="mini-btn" id="btn-zout">−</button>
+    </div>
+
+    <div id="joystick-zone">
+        <div id="joystick-knob"></div>
+    </div>
+
+    <div class="jump-btn" id="btn-jump">JUMP</div>
+
+    <div id="death-screen">
+        <h2>YOU DIED</h2>
+        <p>You fell into the Void!</p>
+        <button id="respawn-btn">RESPAWN</button>
+    </div>
+
+    <!-- Menghubungkan ke file JavaScript terpisah -->
+    <script src="datastore.js"></script>
+    <script src="game.js"></script>
+</body>
+  </html>
+  
